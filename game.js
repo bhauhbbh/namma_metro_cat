@@ -88,7 +88,7 @@ assets.catRun.onload = assetLoaded;
 assets.pigeon.onload = assetLoaded;
 assets.eagle.onload = assetLoaded;
 
-assets.background.src = 'assets/images/game_background.jpeg';
+assets.background.src = 'assets/images/game_background.jpg';
 assets.trainCenter.src = 'assets/images/train/train_centre.png';
 assets.trainRightEnd.src = 'assets/images/train/train_right_end.png';
 assets.catIdle.src = 'assets/images/cat/OrangeTabby-Idle.png';
