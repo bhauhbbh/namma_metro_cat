@@ -90,7 +90,7 @@ assets.catRun.onload = assetLoaded;
 assets.pigeon.onload = assetLoaded;
 assets.eagle.onload = assetLoaded;
 
-assets.background.src = 'assets/images/game_background.jpg';
+assets.background.src = 'assets/images/bg.jpg';
 assets.trainCenter.src = 'assets/images/train/train_centre.png';
 assets.trainRightEnd.src = 'assets/images/train/train_right_end.png';
 assets.catIdle.src = 'assets/images/cat/OrangeTabby-Idle.png';
@@ -199,6 +199,74 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
     keys[e.key] = false;
 });
+
+// Mobile touch controls
+if (window.innerWidth <= 1024) {
+    const btnLeft = document.getElementById('btnLeft');
+    const btnRight = document.getElementById('btnRight');
+    const btnJump = document.getElementById('btnJump');
+    const btnCrouch = document.getElementById('btnCrouch');
+
+    btnLeft.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        keys['ArrowLeft'] = true;
+    });
+    btnLeft.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        keys['ArrowLeft'] = false;
+    });
+
+    btnRight.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        keys['ArrowRight'] = true;
+    });
+    btnRight.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        keys['ArrowRight'] = false;
+    });
+
+    btnCrouch.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        keys['ArrowDown'] = true;
+    });
+    btnCrouch.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        keys['ArrowDown'] = false;
+    });
+
+    // Jump button with multi-tap support
+    let jumpTapCount = 0;
+    let jumpTapTimer = null;
+
+    btnJump.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+
+        if (!game.gameStarted) return;
+
+        const currentTime = Date.now();
+        const timeSinceLastPress = currentTime - lastJumpPressTime;
+
+        // First tap - instant low jump
+        if (!cat.isJumping) {
+            cat.velocityY = cat.lowJumpPower;
+            cat.isJumping = true;
+            jumpLevel = 1;
+            lastJumpPressTime = currentTime;
+        }
+        // Second tap - upgrade to normal jump
+        else if (jumpLevel === 1 && timeSinceLastPress < 300) {
+            cat.velocityY = cat.jumpPower;
+            jumpLevel = 2;
+            lastJumpPressTime = currentTime;
+        }
+        // Third tap - upgrade to high jump
+        else if (jumpLevel === 2 && timeSinceLastPress < 300) {
+            cat.velocityY = cat.doubleJumpPower;
+            jumpLevel = 3;
+            lastJumpPressTime = currentTime;
+        }
+    });
+}
 
 function initGame() {
     // Start with left end at left edge of screen (half visible)
