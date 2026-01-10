@@ -104,8 +104,9 @@ const cat = {
     height: CAT_CONFIG.idleSpriteHeight * CAT_CONFIG.scale,
     velocityY: 0,
     gravity: 0.5,
-    jumpPower: -12,
-    doubleJumpPower: -14,  // Slightly higher jump for double tap
+    lowJumpPower: -9,      // Low jump (1 press)
+    jumpPower: -11,        // Normal jump (2 presses)
+    doubleJumpPower: -13,  // High jump (3 presses) - reduced to stay in frame
     isJumping: false,
     isCrouching: false,
     frameIndex: 0,
@@ -140,7 +141,8 @@ const eagleConfig = {
     speed: 4,
     spawnInterval: 180,  // Spawn every 3 seconds (at 60fps)
     spawnTimer: 0,
-    warningTime: 60  // 1 second warning before attack
+    warningTime: 60,  // 1 second warning before attack
+    spawnCount: 0     // Track how many eagles spawned
 };
 
 // Train configuration
@@ -156,31 +158,38 @@ const train = {
 
 // Input handling
 const keys = {};
-let lastJumpKeyTime = 0;
-let canDoubleJump = false;
+let lastJumpPressTime = 0;
+let jumpLevel = 0; // 0 = not jumped yet, 1 = low, 2 = normal, 3 = high
 
 window.addEventListener('keydown', (e) => {
     keys[e.key] = true;
 
-    // Jump with instant double-tap detection
+    // Three-level jump with instant response
     if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && game.gameStarted) {
         const currentTime = Date.now();
-        const timeSinceLastPress = currentTime - lastJumpKeyTime;
+        const timeSinceLastPress = currentTime - lastJumpPressTime;
 
-        // If already jumping and within double-tap window, upgrade to high jump
-        if (canDoubleJump && timeSinceLastPress < 300 && timeSinceLastPress > 50) {
-            cat.velocityY = cat.doubleJumpPower;
-            console.log('HIGH JUMP!');
-            canDoubleJump = false;
-            lastJumpKeyTime = 0;
-        }
-        // First jump or new jump after landing
-        else if (!cat.isJumping) {
-            cat.velocityY = cat.jumpPower;
+        // First press - instant low jump
+        if (!cat.isJumping) {
+            cat.velocityY = cat.lowJumpPower;
             cat.isJumping = true;
-            canDoubleJump = true;
-            lastJumpKeyTime = currentTime;
-            console.log('Normal jump - press again quickly for HIGH JUMP!');
+            jumpLevel = 1;
+            lastJumpPressTime = currentTime;
+            console.log('Low jump (1 press)');
+        }
+        // Second press within 300ms - upgrade to normal jump
+        else if (jumpLevel === 1 && timeSinceLastPress < 300) {
+            cat.velocityY = cat.jumpPower;
+            jumpLevel = 2;
+            lastJumpPressTime = currentTime;
+            console.log('Normal jump (2 presses)');
+        }
+        // Third press within 300ms - upgrade to high jump
+        else if (jumpLevel === 2 && timeSinceLastPress < 300) {
+            cat.velocityY = cat.doubleJumpPower;
+            jumpLevel = 3;
+            lastJumpPressTime = currentTime;
+            console.log('HIGH JUMP! (3 presses)');
         }
     }
 });
@@ -222,9 +231,19 @@ function spawnPigeon() {
 }
 
 function spawnEagle() {
-    // Eagle attacks at different heights
-    const minHeight = 100;  // Top area
-    const maxHeight = train.y - cat.height + CAT_CONFIG.offsetY; // Cat level
+    eagleConfig.spawnCount++;
+
+    // First 3 eagles spawn higher (easier to dodge)
+    let minHeight, maxHeight;
+    if (eagleConfig.spawnCount <= 3) {
+        minHeight = 100;  // Top area
+        maxHeight = 180;  // Only spawn in upper portion
+    } else {
+        // After first 3, eagles can spawn anywhere
+        minHeight = 100;  // Top area
+        maxHeight = train.y - cat.height + CAT_CONFIG.offsetY; // Cat level
+    }
+
     const attackY = Math.random() * (maxHeight - minHeight) + minHeight;
 
     eagles.push({
@@ -237,7 +256,7 @@ function spawnEagle() {
         warningTimer: eagleConfig.warningTime
     });
 
-    console.log('Eagle spawned at height:', attackY);
+    console.log('Eagle #' + eagleConfig.spawnCount + ' spawned at height:', attackY);
 }
 
 function updateCat() {
@@ -260,6 +279,7 @@ function updateCat() {
             cat.y = groundY;
             cat.velocityY = 0;
             cat.isJumping = false;
+            jumpLevel = 0; // Reset jump level when landing
         }
     } else {
         // Cat is over a gap - keep falling!
