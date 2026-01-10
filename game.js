@@ -112,7 +112,8 @@ const cat = {
     frameDelay: 6,  // Animation speed - higher = slower
     state: 'idle', // idle or run
     lastJumpTime: 0,
-    doubleTapWindow: 300  // milliseconds to detect double tap
+    doubleTapWindow: 300,  // milliseconds to detect double tap
+    facingLeft: false  // Track which direction cat is facing
 };
 
 // Pigeon sprite animation
@@ -133,7 +134,7 @@ const train = {
     endWidth: 0,       // Will be set from actual image
     endHeight: 0,      // Will be set from actual image
     numCenterSections: 3,
-    gapBetweenSections: 10
+    gapBetweenSections: 35
 };
 
 // Input handling
@@ -204,6 +205,8 @@ function spawnPigeon() {
 }
 
 function updateCat() {
+    if (!game.isRunning) return; // Don't update if game is over
+
     // Check crouch
     cat.isCrouching = keys['ArrowDown'] || keys['s'] || keys['S'];
 
@@ -211,12 +214,27 @@ function updateCat() {
     cat.velocityY += cat.gravity;
     cat.y += cat.velocityY;
 
-    // Ground collision (top of train)
+    // Check if cat is over a gap or over train
+    const isOverTrain = checkCatOverTrain();
     const groundY = train.y - cat.height + CAT_CONFIG.offsetY;
-    if (cat.y >= groundY) {
-        cat.y = groundY;
-        cat.velocityY = 0;
-        cat.isJumping = false;
+
+    if (isOverTrain) {
+        // Ground collision (top of train)
+        if (cat.y >= groundY) {
+            cat.y = groundY;
+            cat.velocityY = 0;
+            cat.isJumping = false;
+        }
+    } else {
+        // Cat is over a gap - keep falling!
+        console.log('CAT FALLING! Cat Y:', cat.y, 'Ground Y:', groundY, 'Train Y:', train.y);
+
+        // Game over when cat falls below where it should be standing
+        if (cat.y >= groundY + 20) {  // 20px buffer to trigger game over
+            console.log('GAME OVER TRIGGERED!');
+            gameOver();
+            return;
+        }
     }
 
     // Update animation state
@@ -231,9 +249,11 @@ function updateCat() {
     // Handle horizontal movement
     if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
         cat.x -= 3;
+        cat.facingLeft = true;  // Face left when moving left
     }
     if (keys['ArrowRight'] || keys['d'] || keys['D']) {
         cat.x += 3;
+        cat.facingLeft = false;  // Face right when moving right
     }
 
     // Keep cat in bounds
@@ -250,6 +270,82 @@ function updateCat() {
             cat.frameIndex = (cat.frameIndex + 1) % cat.runFrameCount;
         }
     }
+}
+
+function checkCatOverTrain() {
+    // Calculate cat's feet position (bottom center)
+    const catCenterX = cat.x + cat.width / 2;
+
+    // Check if cat is over the left end
+    if (game.showLeftEnd) {
+        const leftEndStart = game.trainX;
+        const leftEndEnd = game.trainX + train.endWidth;
+
+        if (catCenterX >= leftEndStart && catCenterX <= leftEndEnd) {
+            return true;
+        }
+    }
+
+    // Match the drawing logic exactly
+    let startX = game.trainX + train.endWidth + train.gapBetweenSections;
+    const totalGaps = train.numCenterSections * train.gapBetweenSections;
+    const repeatWidth = (train.centerWidth * train.numCenterSections) + totalGaps;
+
+    // Adjust start to cover screen (same as drawing)
+    while (startX > 0) {
+        startX -= repeatWidth;
+    }
+
+    // Check all sections across the screen
+    let currentX = startX;
+    while (currentX < canvas.width) {
+        for (let i = 0; i < train.numCenterSections; i++) {
+            const sectionStart = currentX;
+            const sectionEnd = currentX + train.centerWidth;
+
+            if (catCenterX >= sectionStart && catCenterX <= sectionEnd) {
+                return true; // Cat is over a train section
+            }
+
+            // Move to next section (add width + gap)
+            currentX += train.centerWidth + train.gapBetweenSections;
+        }
+    }
+
+    // Cat is not over any section - must be over a gap!
+    return false;
+}
+
+function gameOver() {
+    game.isRunning = false;
+    console.log('Game Over! Final Score:', game.score);
+}
+
+function drawGameOverScreen() {
+    ctx.save();
+
+    // Game Over text
+    ctx.fillStyle = 'white';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 6;
+    ctx.font = 'bold 50px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.strokeText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 40);
+    ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 40);
+
+    // Score text
+    ctx.font = 'bold 30px Arial';
+    ctx.lineWidth = 4;
+    ctx.strokeText(`Score: ${game.score}`, canvas.width / 2, canvas.height / 2 + 10);
+    ctx.fillText(`Score: ${game.score}`, canvas.width / 2, canvas.height / 2 + 10);
+
+    // Instruction text
+    ctx.font = '18px Arial';
+    ctx.fillText('Refresh to play again', canvas.width / 2, canvas.height / 2 + 50);
+
+    ctx.restore();
 }
 
 function updatePigeons() {
@@ -356,6 +452,14 @@ function drawCat() {
 
     ctx.save();
 
+    // Flip horizontally if facing left
+    if (cat.facingLeft) {
+        ctx.translate(cat.x + cat.width, cat.y);
+        ctx.scale(-1, 1);
+    } else {
+        ctx.translate(cat.x, cat.y);
+    }
+
     // Draw crouched (scaled down vertically)
     if (cat.isCrouching && !cat.isJumping) {
         ctx.drawImage(
@@ -364,8 +468,8 @@ function drawCat() {
             0,                                         // Source y (always 0 for horizontal strips)
             spriteWidth,                               // Source width
             spriteHeight,                              // Source height
-            cat.x,                                     // Destination x
-            cat.y + cat.height / 2,                   // Destination y (lowered for crouch)
+            0,                                         // Destination x (0 because we translated)
+            cat.height / 2,                           // Destination y (lowered for crouch)
             cat.width,                                 // Destination width (scaled)
             cat.height / 2                            // Destination height (half for crouch)
         );
@@ -376,8 +480,8 @@ function drawCat() {
             0,                                         // Source y (always 0 for horizontal strips)
             spriteWidth,                               // Source width
             spriteHeight,                              // Source height
-            cat.x,                                     // Destination x
-            cat.y,                                     // Destination y
+            0,                                         // Destination x (0 because we translated)
+            0,                                         // Destination y
             cat.width,                                 // Destination width (scaled)
             cat.height                                // Destination height (scaled)
         );
@@ -425,6 +529,9 @@ function update() {
         return; // Don't update game until countdown finishes
     }
 
+    // Stop updating game logic if game over
+    if (!game.isRunning) return;
+
     // Move train from RIGHT to LEFT (subtract to move left)
     game.trainX -= game.trainSpeed;
 
@@ -444,6 +551,11 @@ function draw() {
     // Draw countdown if game hasn't started
     if (!game.gameStarted) {
         drawCountdown();
+    }
+
+    // Draw game over screen on top of everything
+    if (!game.isRunning && game.gameStarted) {
+        drawGameOverScreen();
     }
 }
 
@@ -476,8 +588,6 @@ function drawCountdown() {
 }
 
 function gameLoop() {
-    if (!game.isRunning) return;
-
     update();
     draw();
 
