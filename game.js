@@ -39,12 +39,13 @@ const assets = {
     trainRightEnd: new Image(),
     catIdle: new Image(),
     catRun: new Image(),
-    pigeon: new Image()
+    pigeon: new Image(),
+    eagle: new Image()
 };
 
 // Load all assets
 let assetsLoaded = 0;
-const totalAssets = 6;
+const totalAssets = 7;
 
 function assetLoaded() {
     assetsLoaded++;
@@ -85,6 +86,7 @@ assets.trainRightEnd.onload = assetLoaded;
 assets.catIdle.onload = assetLoaded;
 assets.catRun.onload = assetLoaded;
 assets.pigeon.onload = assetLoaded;
+assets.eagle.onload = assetLoaded;
 
 assets.background.src = 'assets/images/game_background.jpeg';
 assets.trainCenter.src = 'assets/images/train/train_centre.png';
@@ -92,6 +94,7 @@ assets.trainRightEnd.src = 'assets/images/train/train_right_end.png';
 assets.catIdle.src = 'assets/images/cat/OrangeTabby-Idle.png';
 assets.catRun.src = 'assets/images/cat/OrangeTabby-Run.png';
 assets.pigeon.src = 'assets/images/pigeon/pigeon_fiy-Sheet.png';
+assets.eagle.src = 'assets/images/eagle/eagle.png';
 
 // Cat sprite animation
 const cat = {
@@ -124,6 +127,20 @@ const pigeonConfig = {
     frameCount: 7,
     spawnInterval: 120,
     spawnTimer: 0
+};
+
+// Eagle attack system
+const eagles = [];
+const eagleConfig = {
+    spriteWidth: 100,    // Original sprite frame size
+    spriteHeight: 100,
+    width: 70,           // Display size (scaled down)
+    height: 70,
+    frameCount: 8,
+    speed: 4,
+    spawnInterval: 180,  // Spawn every 3 seconds (at 60fps)
+    spawnTimer: 0,
+    warningTime: 60  // 1 second warning before attack
 };
 
 // Train configuration
@@ -202,6 +219,25 @@ function spawnPigeon() {
         frameIndex: 0,
         frameTimer: 0
     });
+}
+
+function spawnEagle() {
+    // Eagle attacks at different heights
+    const minHeight = 100;  // Top area
+    const maxHeight = train.y - cat.height + CAT_CONFIG.offsetY; // Cat level
+    const attackY = Math.random() * (maxHeight - minHeight) + minHeight;
+
+    eagles.push({
+        x: canvas.width + 150,  // Start off screen
+        y: attackY,
+        velocityX: -eagleConfig.speed,
+        frameIndex: 0,
+        frameTimer: 0,
+        warning: true,  // Show warning first
+        warningTimer: eagleConfig.warningTime
+    });
+
+    console.log('Eagle spawned at height:', attackY);
 }
 
 function updateCat() {
@@ -381,6 +417,72 @@ function updatePigeons() {
     }
 }
 
+function updateEagles() {
+    eagleConfig.spawnTimer++;
+    if (eagleConfig.spawnTimer >= eagleConfig.spawnInterval) {
+        eagleConfig.spawnTimer = 0;
+        spawnEagle();
+    }
+
+    for (let i = eagles.length - 1; i >= 0; i--) {
+        const eagle = eagles[i];
+
+        // Handle warning phase
+        if (eagle.warning) {
+            eagle.warningTimer--;
+            if (eagle.warningTimer <= 0) {
+                eagle.warning = false;
+            }
+        } else {
+            // Move eagle
+            eagle.x += eagle.velocityX;
+        }
+
+        // Animate eagle
+        eagle.frameTimer++;
+        if (eagle.frameTimer >= 4) {
+            eagle.frameTimer = 0;
+            eagle.frameIndex = (eagle.frameIndex + 1) % eagleConfig.frameCount;
+        }
+
+        // Check collision with cat (only when not in warning phase)
+        if (!eagle.warning && checkEagleCollision(cat, eagle)) {
+            console.log('Eagle caught the cat! Game Over!');
+            gameOver();
+            return;
+        }
+
+        // Remove if off screen
+        if (eagle.x < -eagleConfig.width - 200) {
+            eagles.splice(i, 1);
+            console.log('Eagle missed! +5 points');
+            game.score += 5;  // Bonus for dodging eagle
+            document.getElementById('score').textContent = `Score: ${game.score}`;
+        }
+    }
+}
+
+function checkEagleCollision(cat, eagle) {
+    const catBox = {
+        x: cat.x + 10,  // Smaller hitbox for fairness
+        y: cat.isCrouching ? cat.y + cat.height / 2 : cat.y + 10,
+        width: cat.width - 20,
+        height: cat.isCrouching ? cat.height / 2 - 10 : cat.height - 20
+    };
+
+    const eagleBox = {
+        x: eagle.x + 20,
+        y: eagle.y + 20,
+        width: eagleConfig.width - 40,
+        height: eagleConfig.height - 40
+    };
+
+    return catBox.x < eagleBox.x + eagleBox.width &&
+           catBox.x + catBox.width > eagleBox.x &&
+           catBox.y < eagleBox.y + eagleBox.height &&
+           catBox.y + catBox.height > eagleBox.y;
+}
+
 function checkCollision(cat, pigeon) {
     const catBox = {
         x: cat.x,
@@ -514,6 +616,27 @@ function drawPigeons() {
     });
 }
 
+function drawEagles() {
+    eagles.forEach(eagle => {
+        ctx.save();
+
+        // Draw eagle (don't flip - sprite already faces left)
+        ctx.drawImage(
+            assets.eagle,
+            eagle.frameIndex * eagleConfig.spriteWidth,  // Source x from sprite sheet
+            0,
+            eagleConfig.spriteWidth,                     // Source width (100)
+            eagleConfig.spriteHeight,                    // Source height (100)
+            eagle.x,                                      // Destination x
+            eagle.y,                                      // Destination y
+            eagleConfig.width,                           // Destination width (70 - scaled)
+            eagleConfig.height                           // Destination height (70 - scaled)
+        );
+
+        ctx.restore();
+    });
+}
+
 function update() {
     // Handle countdown
     if (!game.gameStarted) {
@@ -537,6 +660,7 @@ function update() {
 
     updateCat();
     updatePigeons();
+    updateEagles();
 }
 
 function draw() {
@@ -546,6 +670,7 @@ function draw() {
     drawBackground();
     drawTrain();
     drawPigeons();
+    drawEagles();
     drawCat();
 
     // Draw countdown if game hasn't started
