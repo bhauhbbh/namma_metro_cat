@@ -1,0 +1,491 @@
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false; // Crisp pixel art rendering
+
+// ========================================
+// POSITION CONTROLS - ADJUST THESE VALUES
+// ========================================
+const CAT_CONFIG = {
+    startX: 200,              // Cat's horizontal starting position
+    offsetY: 10,              // Fine-tune vertical offset from train roof (negative = higher, positive = lower)
+    scale: 2,                 // Scale multiplier for cat size (2 = 2x size)
+
+    // Idle animation sprite dimensions (12 frames)
+    idleSpriteWidth: 32,
+    idleSpriteHeight: 32,
+
+    // Run animation sprite dimensions (6 frames)
+    runSpriteWidth: 32,
+    runSpriteHeight: 32
+};
+
+// Game state
+const game = {
+    score: 0,
+    trainSpeed: 2,
+    trainX: 0,
+    isRunning: false,
+    countdown: 3,
+    countdownTimer: 0,
+    countdownInterval: 60, // frames per number (60 frames = 1 sec at 60fps)
+    gameStarted: false,
+    showLeftEnd: true  // Only show left end once at the beginning
+};
+
+// Assets to load
+const assets = {
+    background: new Image(),
+    trainCenter: new Image(),
+    trainRightEnd: new Image(),
+    catIdle: new Image(),
+    catRun: new Image(),
+    pigeon: new Image()
+};
+
+// Load all assets
+let assetsLoaded = 0;
+const totalAssets = 6;
+
+function assetLoaded() {
+    assetsLoaded++;
+    if (assetsLoaded === totalAssets) {
+        // Calculate actual frame dimensions from loaded images
+        CAT_CONFIG.idleSpriteWidth = assets.catIdle.width / 12;  // 12 frames in idle
+        CAT_CONFIG.idleSpriteHeight = assets.catIdle.height;
+
+        CAT_CONFIG.runSpriteWidth = assets.catRun.width / 6;     // 6 frames in run
+        CAT_CONFIG.runSpriteHeight = assets.catRun.height;
+
+        // Update cat dimensions
+        cat.width = CAT_CONFIG.idleSpriteWidth * CAT_CONFIG.scale;
+        cat.height = CAT_CONFIG.idleSpriteHeight * CAT_CONFIG.scale;
+
+        // Set train dimensions from actual images
+        train.centerWidth = assets.trainCenter.width;
+        train.centerHeight = assets.trainCenter.height;
+        train.endWidth = assets.trainRightEnd.width;
+        train.endHeight = assets.trainRightEnd.height;
+
+        // Position train so it's fully visible at bottom of canvas
+        train.y = canvas.height - train.centerHeight;
+
+        console.log('Idle sprite:', CAT_CONFIG.idleSpriteWidth, 'x', CAT_CONFIG.idleSpriteHeight);
+        console.log('Run sprite:', CAT_CONFIG.runSpriteWidth, 'x', CAT_CONFIG.runSpriteHeight);
+        console.log('Train center:', train.centerWidth, 'x', train.centerHeight);
+        console.log('Train end:', train.endWidth, 'x', train.endHeight);
+        console.log('Train Y position:', train.y);
+
+        initGame();
+    }
+}
+
+assets.background.onload = assetLoaded;
+assets.trainCenter.onload = assetLoaded;
+assets.trainRightEnd.onload = assetLoaded;
+assets.catIdle.onload = assetLoaded;
+assets.catRun.onload = assetLoaded;
+assets.pigeon.onload = assetLoaded;
+
+assets.background.src = 'assets/images/game_background.jpeg';
+assets.trainCenter.src = 'assets/images/train/train_centre.png';
+assets.trainRightEnd.src = 'assets/images/train/train_right_end.png';
+assets.catIdle.src = 'assets/images/cat/OrangeTabby-Idle.png';
+assets.catRun.src = 'assets/images/cat/OrangeTabby-Run.png';
+assets.pigeon.src = 'assets/images/pigeon/pigeon_fiy-Sheet.png';
+
+// Cat sprite animation
+const cat = {
+    x: CAT_CONFIG.startX,
+    y: 0,
+    width: CAT_CONFIG.idleSpriteWidth * CAT_CONFIG.scale,
+    height: CAT_CONFIG.idleSpriteHeight * CAT_CONFIG.scale,
+    velocityY: 0,
+    gravity: 0.5,
+    jumpPower: -12,
+    doubleJumpPower: -14,  // Slightly higher jump for double tap
+    isJumping: false,
+    isCrouching: false,
+    frameIndex: 0,
+    frameCount: 12,
+    runFrameCount: 6,
+    frameTimer: 0,
+    frameDelay: 6,  // Animation speed - higher = slower
+    state: 'idle', // idle or run
+    lastJumpTime: 0,
+    doubleTapWindow: 300  // milliseconds to detect double tap
+};
+
+// Pigeon sprite animation
+const pigeons = [];
+const pigeonConfig = {
+    width: 32,
+    height: 32,
+    frameCount: 7,
+    spawnInterval: 120,
+    spawnTimer: 0
+};
+
+// Train configuration
+const train = {
+    y: 400,
+    centerWidth: 0,    // Will be set from actual image
+    centerHeight: 0,   // Will be set from actual image
+    endWidth: 0,       // Will be set from actual image
+    endHeight: 0,      // Will be set from actual image
+    numCenterSections: 3,
+    gapBetweenSections: 10
+};
+
+// Input handling
+const keys = {};
+let lastJumpKeyTime = 0;
+let canDoubleJump = false;
+
+window.addEventListener('keydown', (e) => {
+    keys[e.key] = true;
+
+    // Jump with instant double-tap detection
+    if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && game.gameStarted) {
+        const currentTime = Date.now();
+        const timeSinceLastPress = currentTime - lastJumpKeyTime;
+
+        // If already jumping and within double-tap window, upgrade to high jump
+        if (canDoubleJump && timeSinceLastPress < 300 && timeSinceLastPress > 50) {
+            cat.velocityY = cat.doubleJumpPower;
+            console.log('HIGH JUMP!');
+            canDoubleJump = false;
+            lastJumpKeyTime = 0;
+        }
+        // First jump or new jump after landing
+        else if (!cat.isJumping) {
+            cat.velocityY = cat.jumpPower;
+            cat.isJumping = true;
+            canDoubleJump = true;
+            lastJumpKeyTime = currentTime;
+            console.log('Normal jump - press again quickly for HIGH JUMP!');
+        }
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    keys[e.key] = false;
+});
+
+function initGame() {
+    // Start with left end at left edge of screen (half visible)
+    game.trainX = 0;
+
+    // Position cat on top of train with offset
+    cat.y = train.y - cat.height + CAT_CONFIG.offsetY;
+
+    game.isRunning = true;
+    game.countdown = 3;
+    game.countdownTimer = 0;
+    game.gameStarted = false;
+    game.showLeftEnd = true;
+
+    console.log('Game initialized. Train X:', game.trainX);
+
+    gameLoop();
+}
+
+function spawnPigeon() {
+    // Spawn pigeons higher up - they need high jump to catch
+    const minHeight = 50;
+    const maxHeight = train.y - 150; // Higher than normal cat jump can reach
+
+    pigeons.push({
+        x: canvas.width,
+        y: Math.random() * (maxHeight - minHeight) + minHeight,
+        velocityX: -3,
+        frameIndex: 0,
+        frameTimer: 0
+    });
+}
+
+function updateCat() {
+    // Check crouch
+    cat.isCrouching = keys['ArrowDown'] || keys['s'] || keys['S'];
+
+    // Apply gravity
+    cat.velocityY += cat.gravity;
+    cat.y += cat.velocityY;
+
+    // Ground collision (top of train)
+    const groundY = train.y - cat.height + CAT_CONFIG.offsetY;
+    if (cat.y >= groundY) {
+        cat.y = groundY;
+        cat.velocityY = 0;
+        cat.isJumping = false;
+    }
+
+    // Update animation state
+    if (cat.isJumping) {
+        cat.state = 'run';
+    } else if (keys['ArrowLeft'] || keys['a'] || keys['A'] || keys['ArrowRight'] || keys['d'] || keys['D']) {
+        cat.state = 'run';
+    } else {
+        cat.state = 'idle';
+    }
+
+    // Handle horizontal movement
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+        cat.x -= 3;
+    }
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+        cat.x += 3;
+    }
+
+    // Keep cat in bounds
+    if (cat.x < 0) cat.x = 0;
+    if (cat.x > canvas.width - cat.width) cat.x = canvas.width - cat.width;
+
+    // Update animation frame
+    cat.frameTimer++;
+    if (cat.frameTimer >= cat.frameDelay) {
+        cat.frameTimer = 0;
+        if (cat.state === 'idle') {
+            cat.frameIndex = (cat.frameIndex + 1) % cat.frameCount;
+        } else {
+            cat.frameIndex = (cat.frameIndex + 1) % cat.runFrameCount;
+        }
+    }
+}
+
+function updatePigeons() {
+    pigeonConfig.spawnTimer++;
+    if (pigeonConfig.spawnTimer >= pigeonConfig.spawnInterval) {
+        pigeonConfig.spawnTimer = 0;
+        spawnPigeon();
+    }
+
+    for (let i = pigeons.length - 1; i >= 0; i--) {
+        const pigeon = pigeons[i];
+        pigeon.x += pigeon.velocityX;
+
+        // Animate pigeon
+        pigeon.frameTimer++;
+        if (pigeon.frameTimer >= 5) {
+            pigeon.frameTimer = 0;
+            pigeon.frameIndex = (pigeon.frameIndex + 1) % pigeonConfig.frameCount;
+        }
+
+        // Check collision with cat
+        if (checkCollision(cat, pigeon)) {
+            pigeons.splice(i, 1);
+            game.score += 10;
+            document.getElementById('score').textContent = `Score: ${game.score}`;
+            continue;
+        }
+
+        // Remove if off screen
+        if (pigeon.x < -pigeonConfig.width) {
+            pigeons.splice(i, 1);
+        }
+    }
+}
+
+function checkCollision(cat, pigeon) {
+    const catBox = {
+        x: cat.x,
+        y: cat.isCrouching ? cat.y + cat.height / 2 : cat.y,
+        width: cat.width,
+        height: cat.isCrouching ? cat.height / 2 : cat.height
+    };
+
+    return catBox.x < pigeon.x + pigeonConfig.width &&
+           catBox.x + catBox.width > pigeon.x &&
+           catBox.y < pigeon.y + pigeonConfig.height &&
+           catBox.y + catBox.height > pigeon.y;
+}
+
+function drawBackground() {
+    // Draw background image scaled to fit
+    ctx.drawImage(assets.background, 0, 0, canvas.width, canvas.height);
+}
+
+function drawTrain() {
+    // Draw left end (flipped right end) - only once at the beginning
+    if (game.showLeftEnd) {
+        ctx.save();
+        ctx.translate(game.trainX + train.endWidth, train.y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(assets.trainRightEnd, 0, 0, train.endWidth, train.endHeight);
+        ctx.restore();
+
+        // Hide left end once it's off screen
+        if (game.trainX + train.endWidth < -train.endWidth) {
+            game.showLeftEnd = false;
+        }
+    }
+
+    // Draw infinite repeating center sections
+    // Start position for first center section
+    let startX = game.trainX + train.endWidth + train.gapBetweenSections;
+
+    // Calculate how far to offset based on movement
+    const totalGaps = train.numCenterSections * train.gapBetweenSections;
+    const repeatWidth = (train.centerWidth * train.numCenterSections) + totalGaps;
+
+    // Adjust start to always cover the screen
+    while (startX > 0) {
+        startX -= repeatWidth;
+    }
+
+    // Draw enough repeating sections to cover screen width
+    let currentX = startX;
+    while (currentX < canvas.width) {
+        for (let i = 0; i < train.numCenterSections; i++) {
+            ctx.drawImage(
+                assets.trainCenter,
+                currentX,
+                train.y,
+                train.centerWidth,
+                train.centerHeight
+            );
+            currentX += train.centerWidth + train.gapBetweenSections;
+        }
+    }
+}
+
+function drawCat() {
+    const isIdle = cat.state === 'idle';
+    const spriteSheet = isIdle ? assets.catIdle : assets.catRun;
+    const spriteWidth = isIdle ? CAT_CONFIG.idleSpriteWidth : CAT_CONFIG.runSpriteWidth;
+    const spriteHeight = isIdle ? CAT_CONFIG.idleSpriteHeight : CAT_CONFIG.runSpriteHeight;
+
+    ctx.save();
+
+    // Draw crouched (scaled down vertically)
+    if (cat.isCrouching && !cat.isJumping) {
+        ctx.drawImage(
+            spriteSheet,
+            cat.frameIndex * spriteWidth,             // Source x from sprite sheet
+            0,                                         // Source y (always 0 for horizontal strips)
+            spriteWidth,                               // Source width
+            spriteHeight,                              // Source height
+            cat.x,                                     // Destination x
+            cat.y + cat.height / 2,                   // Destination y (lowered for crouch)
+            cat.width,                                 // Destination width (scaled)
+            cat.height / 2                            // Destination height (half for crouch)
+        );
+    } else {
+        ctx.drawImage(
+            spriteSheet,
+            cat.frameIndex * spriteWidth,             // Source x from sprite sheet
+            0,                                         // Source y (always 0 for horizontal strips)
+            spriteWidth,                               // Source width
+            spriteHeight,                              // Source height
+            cat.x,                                     // Destination x
+            cat.y,                                     // Destination y
+            cat.width,                                 // Destination width (scaled)
+            cat.height                                // Destination height (scaled)
+        );
+    }
+
+    ctx.restore();
+}
+
+function drawPigeons() {
+    pigeons.forEach(pigeon => {
+        ctx.save();
+
+        // Flip pigeon horizontally to face left
+        ctx.translate(pigeon.x + pigeonConfig.width, pigeon.y);
+        ctx.scale(-1, 1);
+
+        ctx.drawImage(
+            assets.pigeon,
+            pigeon.frameIndex * pigeonConfig.width,
+            0,
+            pigeonConfig.width,
+            pigeonConfig.height,
+            0,
+            0,
+            pigeonConfig.width,
+            pigeonConfig.height
+        );
+
+        ctx.restore();
+    });
+}
+
+function update() {
+    // Handle countdown
+    if (!game.gameStarted) {
+        game.countdownTimer++;
+        if (game.countdownTimer >= game.countdownInterval) {
+            game.countdownTimer = 0;
+            game.countdown--;
+            if (game.countdown <= 0) {
+                game.gameStarted = true;
+                console.log('Countdown finished! Train starting to move.');
+            }
+        }
+        return; // Don't update game until countdown finishes
+    }
+
+    // Move train from RIGHT to LEFT (subtract to move left)
+    game.trainX -= game.trainSpeed;
+
+    updateCat();
+    updatePigeons();
+}
+
+function draw() {
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawBackground();
+    drawTrain();
+    drawPigeons();
+    drawCat();
+
+    // Draw countdown if game hasn't started
+    if (!game.gameStarted) {
+        drawCountdown();
+    }
+}
+
+function drawCountdown() {
+    if (game.countdown <= 0) return;
+
+    ctx.save();
+
+    // Flash effect - make number bigger and fade during each second
+    const progress = game.countdownTimer / game.countdownInterval;
+    const scale = 1 + (Math.sin(progress * Math.PI * 2) * 0.2); // Pulsing effect
+    const alpha = 1 - (progress * 0.3); // Slight fade
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'white';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 8;
+    ctx.font = `bold ${120 * scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const text = game.countdown.toString();
+
+    // Draw stroke (outline)
+    ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
+    // Draw fill
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    ctx.restore();
+}
+
+function gameLoop() {
+    if (!game.isRunning) return;
+
+    update();
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Start message
+ctx.fillStyle = 'white';
+ctx.font = '30px Arial';
+ctx.textAlign = 'center';
+ctx.fillText('Loading assets...', canvas.width / 2, canvas.height / 2);
