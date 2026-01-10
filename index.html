@@ -5,53 +5,129 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Namma Metro Cat Game</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: #000;
+            background: #1a1a1a;
             font-family: Arial, sans-serif;
+            color: white;
+        }
+        #gameWrapper {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            padding: 20px;
+        }
+        #controlsPanel {
+            min-width: 250px;
+            padding: 20px;
+        }
+        #controlsPanel h2 {
+            margin-bottom: 20px;
+            color: #ffa500;
+            font-size: 20px;
+        }
+        .control-item {
+            margin: 10px 0;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+        .control-key {
+            display: inline-block;
+            padding: 2px 6px;
+            font-weight: bold;
+            color: #ffa500;
+            min-width: 60px;
         }
         #gameContainer {
             position: relative;
         }
         canvas {
             display: block;
-            border: 2px solid #333;
+            border: 3px solid #444;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
-        #instructions {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 14px;
+        #scorePanel {
+            min-width: 200px;
+            padding: 20px;
+        }
+        #scorePanel h2 {
+            margin-bottom: 20px;
+            color: #ffa500;
+            font-size: 20px;
         }
         #score {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 18px;
+            font-size: 56px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .stat-item {
+            margin: 15px 0;
+            padding: 5px 0;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 13px;
+        }
+        .stat-value {
+            color: #fff;
+            font-size: 24px;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="960" height="540"></canvas>
-        <div id="instructions">
-            UP x1: Low Jump | UP x2: Jump | UP x3: High Jump | DOWN/S: Crouch
+    <div id="gameWrapper">
+        <!-- Left Panel - Controls -->
+        <div id="controlsPanel">
+            <h2>Controls</h2>
+            <div class="control-item">
+                <span class="control-key">UP x1</span> Low Jump
+            </div>
+            <div class="control-item">
+                <span class="control-key">UP x2</span> Normal Jump
+            </div>
+            <div class="control-item">
+                <span class="control-key">UP x3</span> High Jump
+            </div>
+            <div class="control-item">
+                <span class="control-key">DOWN/S</span> Crouch
+            </div>
+            <div class="control-item">
+                <span class="control-key">LEFT/A</span> Move Left
+            </div>
+            <div class="control-item">
+                <span class="control-key">RIGHT/D</span> Move Right
+            </div>
         </div>
-        <div id="score">Score: 0</div>
+
+        <!-- Center - Game Canvas -->
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="1200" height="675"></canvas>
+        </div>
+
+        <!-- Right Panel - Score -->
+        <div id="scorePanel">
+            <h2>Score</h2>
+            <div id="score">0</div>
+            <div class="stat-item">
+                <div class="stat-label">Pigeons Caught</div>
+                <div class="stat-value" id="pigeonsCaught">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Eagles Dodged</div>
+                <div class="stat-value" id="eaglesDodged">0</div>
+            </div>
+        </div>
     </div>
     <script src="game.js"></script>
 </body>

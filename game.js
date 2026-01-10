@@ -22,6 +22,8 @@ const CAT_CONFIG = {
 // Game state
 const game = {
     score: 0,
+    pigeonsCaught: 0,
+    eaglesDodged: 0,
     trainSpeed: 2,
     trainX: 0,
     isRunning: false,
@@ -426,7 +428,9 @@ function updatePigeons() {
         if (checkCollision(cat, pigeon)) {
             pigeons.splice(i, 1);
             game.score += 10;
-            document.getElementById('score').textContent = `Score: ${game.score}`;
+            game.pigeonsCaught++;
+            document.getElementById('score').textContent = game.score;
+            document.getElementById('pigeonsCaught').textContent = game.pigeonsCaught;
             continue;
         }
 
@@ -477,7 +481,9 @@ function updateEagles() {
             eagles.splice(i, 1);
             console.log('Eagle missed! +5 points');
             game.score += 5;  // Bonus for dodging eagle
-            document.getElementById('score').textContent = `Score: ${game.score}`;
+            game.eaglesDodged++;
+            document.getElementById('score').textContent = game.score;
+            document.getElementById('eaglesDodged').textContent = game.eaglesDodged;
         }
     }
 }
