@@ -2,6 +2,13 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false; // Crisp pixel art rendering
 
+// Detect mobile and resize canvas
+const isMobile = window.innerWidth <= 1024;
+if (isMobile) {
+    canvas.width = 600;
+    canvas.height = 800;
+}
+
 // ========================================
 // POSITION CONTROLS - ADJUST THESE VALUES
 // ========================================
@@ -222,6 +229,7 @@ if (window.innerWidth <= 1024) {
     const btnRight = document.getElementById('btnRight');
     const btnJump = document.getElementById('btnJump');
     const btnCrouch = document.getElementById('btnCrouch');
+    const btnRestart = document.getElementById('btnRestart');
 
     btnLeft.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -287,6 +295,12 @@ if (window.innerWidth <= 1024) {
             sounds.jump.currentTime = 0;
             sounds.jump.play();
         }
+    });
+
+    // Restart button - reload the page
+    btnRestart.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        location.reload();
     });
 }
 
@@ -652,8 +666,27 @@ function checkCollision(cat, pigeon) {
 }
 
 function drawBackground() {
-    // Draw background image scaled to fit
-    ctx.drawImage(assets.background, 0, 0, canvas.width, canvas.height);
+    // Draw background image - cover mode to avoid squeezing
+    const bgAspect = assets.background.width / assets.background.height;
+    const canvasAspect = canvas.width / canvas.height;
+
+    let drawWidth, drawHeight, offsetX, offsetY;
+
+    if (canvasAspect > bgAspect) {
+        // Canvas is wider than background
+        drawWidth = canvas.width;
+        drawHeight = canvas.width / bgAspect;
+        offsetX = 0;
+        offsetY = (canvas.height - drawHeight) / 2;
+    } else {
+        // Canvas is taller than background
+        drawHeight = canvas.height;
+        drawWidth = canvas.height * bgAspect;
+        offsetX = (canvas.width - drawWidth) / 2;
+        offsetY = 0;
+    }
+
+    ctx.drawImage(assets.background, offsetX, offsetY, drawWidth, drawHeight);
 }
 
 function drawTrain() {

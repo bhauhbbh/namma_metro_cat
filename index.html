@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Namma Metro Cat Game</title>
     <style>
         * {
@@ -15,10 +15,13 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: #1a1a1a;
-            font-family: Arial, sans-serif;
+            background: #2a2a2a;
+            font-family: 'Arial', sans-serif;
             color: white;
+            overflow-x: hidden;
         }
+
+        /* Desktop Layout */
         #gameWrapper {
             display: flex;
             gap: 30px;
@@ -26,20 +29,24 @@
             padding: 20px;
             max-width: 100vw;
         }
+
         #controlsPanel {
             min-width: 250px;
             padding: 20px;
         }
+
         #controlsPanel h2 {
             margin-bottom: 20px;
             color: #ffa500;
             font-size: 20px;
         }
+
         .control-item {
             margin: 10px 0;
             padding: 5px 0;
             font-size: 14px;
         }
+
         .control-key {
             display: inline-block;
             padding: 2px 6px;
@@ -47,9 +54,11 @@
             color: #ffa500;
             min-width: 60px;
         }
+
         #gameContainer {
             position: relative;
         }
+
         canvas {
             display: block;
             border: 3px solid #444;
@@ -57,93 +66,18 @@
             max-width: 100%;
             height: auto;
         }
+
         #scorePanel {
             min-width: 200px;
             padding: 20px;
         }
-        #touchControls {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 20px;
-            background: rgba(0,0,0,0.8);
-            justify-content: space-around;
-            gap: 10px;
-        }
-        .touch-btn {
-            background: rgba(255,165,0,0.3);
-            border: 2px solid #ffa500;
-            color: #fff;
-            padding: 15px 25px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            touch-action: manipulation;
-            user-select: none;
-        }
-        .touch-btn:active {
-            background: rgba(255,165,0,0.6);
-        }
 
-        /* Mobile styles */
-        @media (max-width: 1024px) {
-            #gameWrapper {
-                flex-direction: column;
-                gap: 15px;
-                padding: 10px;
-            }
-            #controlsPanel, #scorePanel {
-                min-width: 100%;
-                padding: 10px;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-                justify-content: center;
-            }
-            #controlsPanel h2, #scorePanel h2 {
-                width: 100%;
-                text-align: center;
-                margin-bottom: 10px;
-                font-size: 18px;
-            }
-            .control-item {
-                margin: 5px;
-                font-size: 12px;
-            }
-            #score {
-                font-size: 36px;
-                margin: 10px 0;
-            }
-            .stat-item {
-                margin: 5px 10px;
-            }
-            .stat-value {
-                font-size: 18px;
-            }
-            #touchControls {
-                display: flex;
-            }
-        }
-
-        @media (max-width: 480px) {
-            #controlsPanel, #scorePanel {
-                font-size: 11px;
-            }
-            #score {
-                font-size: 28px;
-            }
-            .touch-btn {
-                padding: 12px 18px;
-                font-size: 14px;
-            }
-        }
         #scorePanel h2 {
             margin-bottom: 20px;
             color: #ffa500;
             font-size: 20px;
         }
+
         #score {
             font-size: 56px;
             font-weight: bold;
@@ -151,72 +85,346 @@
             text-align: center;
             margin: 20px 0;
         }
+
         .stat-item {
             margin: 15px 0;
             padding: 5px 0;
         }
+
         .stat-label {
             color: #888;
             font-size: 13px;
         }
+
         .stat-value {
             color: #fff;
             font-size: 24px;
             font-weight: bold;
         }
+
+        #touchControls {
+            display: none;
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        .desktop-only {
+            display: block;
+        }
+
+        .restart-container {
+            display: none;
+        }
+
+        /* Mobile/Handheld Console Layout */
+        @media (max-width: 1024px) {
+            body {
+                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+                align-items: flex-start;
+                padding: 0;
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            #gameWrapper {
+                flex-direction: column;
+                gap: 0;
+                padding: 0;
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                height: 100vh;
+                display: flex;
+            }
+
+            /* Info bar above canvas */
+            #controlsPanel {
+                width: 100%;
+                min-width: auto;
+                padding: 6px 10px;
+                background: rgba(0,0,0,0.5);
+                border-radius: 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0;
+                flex-shrink: 0;
+            }
+
+            #controlsPanel h2 {
+                display: none;
+            }
+
+            .control-item {
+                display: inline-block;
+                margin: 0 5px;
+                font-size: 10px;
+            }
+
+            .control-key {
+                min-width: auto;
+                font-size: 10px;
+            }
+
+            .mobile-only {
+                display: inline-block;
+            }
+
+            .desktop-only {
+                display: none;
+            }
+
+            /* Score panel - compact top bar */
+            #scorePanel {
+                width: 100%;
+                min-width: auto;
+                padding: 6px 10px;
+                background: rgba(0,0,0,0.6);
+                border-radius: 0;
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                margin-bottom: 0;
+                flex-shrink: 0;
+            }
+
+            #scorePanel h2 {
+                display: none;
+            }
+
+            #score {
+                font-size: 28px;
+                margin: 0;
+            }
+
+            .stat-item {
+                margin: 0;
+                text-align: center;
+            }
+
+            .stat-label {
+                font-size: 9px;
+            }
+
+            .stat-value {
+                font-size: 16px;
+            }
+
+            /* Canvas container - 60% of remaining space */
+            #gameContainer {
+                width: 100%;
+                background: #000;
+                padding: 0;
+                border-radius: 0;
+                box-shadow: none;
+                flex: 0 0 60%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+            }
+
+            canvas {
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: fill;
+                border: none;
+                border-radius: 0;
+            }
+
+            /* Physical-looking touch controls - 40% of screen */
+            #touchControls {
+                display: flex;
+                width: 100%;
+                background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%);
+                padding: 0;
+                border-radius: 0;
+                box-shadow: none;
+                justify-content: center;
+                align-items: center;
+                flex: 0 0 40%;
+                position: relative;
+            }
+
+            /* Restart button in corner */
+            .restart-container {
+                display: flex !important;
+                position: absolute;
+                left: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+
+            /* D-Pad (All controls in one grid) */
+            .dpad-container {
+                display: grid;
+                grid-template-columns: 70px 70px 70px;
+                grid-template-rows: 70px 70px 70px;
+                gap: 8px;
+                padding: 0;
+            }
+
+            .touch-btn {
+                background: linear-gradient(145deg, #3a3a3a, #1f1f1f);
+                border: 3px solid #444;
+                color: #fff;
+                font-size: 28px;
+                font-weight: bold;
+                border-radius: 12px;
+                box-shadow:
+                    0 6px 0 #0a0a0a,
+                    0 8px 15px rgba(0,0,0,0.4),
+                    inset 0 1px 0 rgba(255,255,255,0.1);
+                touch-action: manipulation;
+                user-select: none;
+                cursor: pointer;
+                transition: all 0.1s;
+                width: 70px;
+                height: 70px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .touch-btn:active {
+                background: linear-gradient(145deg, #1f1f1f, #2a2a2a);
+                box-shadow:
+                    0 2px 0 #0a0a0a,
+                    0 3px 8px rgba(0,0,0,0.4),
+                    inset 0 2px 5px rgba(0,0,0,0.5);
+                transform: translateY(4px);
+            }
+
+            #btnJump {
+                grid-column: 2;
+                grid-row: 1;
+            }
+
+            #btnLeft {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            #btnRight {
+                grid-column: 3;
+                grid-row: 2;
+            }
+
+            #btnCrouch {
+                grid-column: 2;
+                grid-row: 3;
+            }
+
+            /* Hide action container */
+            .action-container {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .restart-container {
+                left: 10px;
+            }
+
+            .dpad-container {
+                grid-template-columns: 60px 60px 60px;
+                grid-template-rows: 60px 60px 60px;
+                gap: 6px;
+                padding: 0;
+            }
+
+            .touch-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            #score {
+                font-size: 24px;
+            }
+
+            .stat-value {
+                font-size: 14px;
+            }
+
+            .stat-label {
+                font-size: 8px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="gameWrapper">
-        <!-- Left Panel - Controls -->
+        <!-- Info Panel (Desktop: Left, Mobile: Top compact) -->
         <div id="controlsPanel">
             <h2>Controls</h2>
-            <div class="control-item">
+            <div class="control-item desktop-only">
                 <span class="control-key">UP x1</span> Low Jump
             </div>
-            <div class="control-item">
+            <div class="control-item desktop-only">
                 <span class="control-key">UP x2</span> Normal Jump
             </div>
-            <div class="control-item">
+            <div class="control-item desktop-only">
                 <span class="control-key">UP x3</span> High Jump
             </div>
-            <div class="control-item">
+            <div class="control-item desktop-only">
                 <span class="control-key">DOWN/S</span> Crouch
             </div>
-            <div class="control-item">
+            <div class="control-item desktop-only">
                 <span class="control-key">LEFT/A</span> Move Left
             </div>
-            <div class="control-item">
+            <div class="control-item desktop-only">
                 <span class="control-key">RIGHT/D</span> Move Right
+            </div>
+            <div class="control-item mobile-only">
+                <span class="control-key">↑×1-3</span> Jump
+            </div>
+            <div class="control-item mobile-only">
+                <span class="control-key">↓</span> Crouch
+            </div>
+            <div class="control-item mobile-only">
+                <span class="control-key">←→</span> Move
             </div>
         </div>
 
-        <!-- Center - Game Canvas -->
+        <!-- Score Panel (Desktop: Right, Mobile: Top bar) -->
+        <div id="scorePanel">
+            <div>
+                <h2>Score</h2>
+                <div id="score">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Pigeons</div>
+                <div class="stat-value" id="pigeonsCaught">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Eagles</div>
+                <div class="stat-value" id="eaglesDodged">0</div>
+            </div>
+        </div>
+
+        <!-- Game Canvas -->
         <div id="gameContainer">
             <canvas id="gameCanvas" width="1200" height="675"></canvas>
         </div>
 
-        <!-- Right Panel - Score -->
-        <div id="scorePanel">
-            <h2>Score</h2>
-            <div id="score">0</div>
-            <div class="stat-item">
-                <div class="stat-label">Pigeons Caught</div>
-                <div class="stat-value" id="pigeonsCaught">0</div>
+        <!-- Mobile Touch Controls (Handheld style) -->
+        <div id="touchControls">
+            <!-- Restart Button -->
+            <div class="restart-container">
+                <button class="touch-btn" id="btnRestart">↻</button>
             </div>
-            <div class="stat-item">
-                <div class="stat-label">Eagles Dodged</div>
-                <div class="stat-value" id="eaglesDodged">0</div>
+
+            <!-- D-Pad -->
+            <div class="dpad-container">
+                <button class="touch-btn" id="btnJump">▲</button>
+                <button class="touch-btn" id="btnLeft">◄</button>
+                <button class="touch-btn" id="btnRight">►</button>
+                <button class="touch-btn" id="btnCrouch">▼</button>
             </div>
         </div>
-    </div>
-
-    <!-- Mobile Touch Controls -->
-    <div id="touchControls">
-        <button class="touch-btn" id="btnLeft">◄</button>
-        <button class="touch-btn" id="btnCrouch">↓</button>
-        <button class="touch-btn" id="btnJump">↑</button>
-        <button class="touch-btn" id="btnRight">►</button>
     </div>
 
     <script src="game.js"></script>
