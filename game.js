@@ -324,8 +324,15 @@ function initGame() {
 
 function spawnPigeon() {
     // Spawn pigeons higher up - they need high jump to catch
-    const minHeight = 50;
-    const maxHeight = train.y - 150; // Higher than normal cat jump can reach
+    // Lower spawn on mobile for better visibility
+    let minHeight, maxHeight;
+    if (isMobile) {
+        minHeight = train.y - 250;  // Much lower on mobile
+        maxHeight = train.y - 120;  // Stay within triple jump reach
+    } else {
+        minHeight = 50;
+        maxHeight = train.y - 150; // Higher than normal cat jump can reach
+    }
 
     pigeons.push({
         x: canvas.width,
@@ -340,14 +347,25 @@ function spawnEagle() {
     eagleConfig.spawnCount++;
 
     // First 3 eagles spawn higher (easier to dodge)
+    // Lower spawn on mobile for better visibility
     let minHeight, maxHeight;
-    if (eagleConfig.spawnCount <= 3) {
-        minHeight = 100;  // Top area
-        maxHeight = 180;  // Only spawn in upper portion
+    if (isMobile) {
+        if (eagleConfig.spawnCount <= 3) {
+            minHeight = train.y - 280;  // Much lower for mobile
+            maxHeight = train.y - 180;
+        } else {
+            minHeight = train.y - 280;
+            maxHeight = train.y - cat.height + CAT_CONFIG.offsetY; // Cat level
+        }
     } else {
-        // After first 3, eagles can spawn anywhere
-        minHeight = 100;  // Top area
-        maxHeight = train.y - cat.height + CAT_CONFIG.offsetY; // Cat level
+        if (eagleConfig.spawnCount <= 3) {
+            minHeight = 100;  // Top area
+            maxHeight = 180;  // Only spawn in upper portion
+        } else {
+            // After first 3, eagles can spawn anywhere
+            minHeight = 100;  // Top area
+            maxHeight = train.y - cat.height + CAT_CONFIG.offsetY; // Cat level
+        }
     }
 
     const attackY = Math.random() * (maxHeight - minHeight) + minHeight;
