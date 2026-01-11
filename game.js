@@ -45,6 +45,13 @@ const assets = {
     eagle: new Image()
 };
 
+// Audio assets
+const sounds = {
+    jump: new Audio('assets/music/SFX_Jump_38.wav'),
+    gameOver: new Audio('assets/music/game_over.wav'),
+    coin: new Audio('assets/music/coin-recieved-230517.mp3')
+};
+
 // Load all assets
 let assetsLoaded = 0;
 const totalAssets = 7;
@@ -132,6 +139,9 @@ const pigeonConfig = {
     spawnTimer: 0
 };
 
+// Score animations
+const scoreAnimations = [];
+
 // Eagle attack system
 const eagles = [];
 const eagleConfig = {
@@ -177,6 +187,8 @@ window.addEventListener('keydown', (e) => {
             cat.isJumping = true;
             jumpLevel = 1;
             lastJumpPressTime = currentTime;
+            sounds.jump.currentTime = 0;
+            sounds.jump.play();
             console.log('Low jump (1 press)');
         }
         // Second press within 300ms - upgrade to normal jump
@@ -184,6 +196,8 @@ window.addEventListener('keydown', (e) => {
             cat.velocityY = cat.jumpPower;
             jumpLevel = 2;
             lastJumpPressTime = currentTime;
+            sounds.jump.currentTime = 0;
+            sounds.jump.play();
             console.log('Normal jump (2 presses)');
         }
         // Third press within 300ms - upgrade to high jump
@@ -191,6 +205,8 @@ window.addEventListener('keydown', (e) => {
             cat.velocityY = cat.doubleJumpPower;
             jumpLevel = 3;
             lastJumpPressTime = currentTime;
+            sounds.jump.currentTime = 0;
+            sounds.jump.play();
             console.log('HIGH JUMP! (3 presses)');
         }
     }
@@ -252,18 +268,24 @@ if (window.innerWidth <= 1024) {
             cat.isJumping = true;
             jumpLevel = 1;
             lastJumpPressTime = currentTime;
+            sounds.jump.currentTime = 0;
+            sounds.jump.play();
         }
         // Second tap - upgrade to normal jump
         else if (jumpLevel === 1 && timeSinceLastPress < 300) {
             cat.velocityY = cat.jumpPower;
             jumpLevel = 2;
             lastJumpPressTime = currentTime;
+            sounds.jump.currentTime = 0;
+            sounds.jump.play();
         }
         // Third tap - upgrade to high jump
         else if (jumpLevel === 2 && timeSinceLastPress < 300) {
             cat.velocityY = cat.doubleJumpPower;
             jumpLevel = 3;
             lastJumpPressTime = currentTime;
+            sounds.jump.currentTime = 0;
+            sounds.jump.play();
         }
     });
 }
@@ -444,6 +466,7 @@ function checkCatOverTrain() {
 
 function gameOver() {
     game.isRunning = false;
+    sounds.gameOver.play();
     console.log('Game Over! Final Score:', game.score);
 }
 
@@ -494,8 +517,25 @@ function updatePigeons() {
 
         // Check collision with cat
         if (checkCollision(cat, pigeon)) {
+            const scoreAdded = 10;
+
+            // Play coin sound
+            sounds.coin.currentTime = 0;
+            sounds.coin.play();
+
+            // Create floating score animation
+            scoreAnimations.push({
+                x: pigeon.x + pigeonConfig.width / 2,
+                y: pigeon.y,
+                text: '+' + scoreAdded,
+                alpha: 1,
+                velocityY: -2,
+                timer: 0,
+                maxTimer: 60 // 1 second at 60fps
+            });
+
             pigeons.splice(i, 1);
-            game.score += 10;
+            game.score += scoreAdded;
             game.pigeonsCaught++;
             document.getElementById('score').textContent = game.score;
             document.getElementById('pigeonsCaught').textContent = game.pigeonsCaught;
@@ -505,6 +545,26 @@ function updatePigeons() {
         // Remove if off screen
         if (pigeon.x < -pigeonConfig.width) {
             pigeons.splice(i, 1);
+        }
+    }
+}
+
+function updateScoreAnimations() {
+    for (let i = scoreAnimations.length - 1; i >= 0; i--) {
+        const anim = scoreAnimations[i];
+
+        // Move upward
+        anim.y += anim.velocityY;
+
+        // Increment timer
+        anim.timer++;
+
+        // Fade out over time
+        anim.alpha = 1 - (anim.timer / anim.maxTimer);
+
+        // Remove when animation is complete
+        if (anim.timer >= anim.maxTimer) {
+            scoreAnimations.splice(i, 1);
         }
     }
 }
@@ -731,6 +791,23 @@ function drawEagles() {
     });
 }
 
+function drawScoreAnimations() {
+    scoreAnimations.forEach(anim => {
+        ctx.save();
+
+        ctx.globalAlpha = anim.alpha;
+        ctx.fillStyle = '#00FF00';  // Bright green
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Draw fill
+        ctx.fillText(anim.text, anim.x, anim.y);
+
+        ctx.restore();
+    });
+}
+
 function update() {
     // Handle countdown
     if (!game.gameStarted) {
@@ -755,6 +832,7 @@ function update() {
     updateCat();
     updatePigeons();
     updateEagles();
+    updateScoreAnimations();
 }
 
 function draw() {
@@ -766,6 +844,7 @@ function draw() {
     drawPigeons();
     drawEagles();
     drawCat();
+    drawScoreAnimations();
 
     // Draw countdown if game hasn't started
     if (!game.gameStarted) {
