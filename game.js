@@ -892,6 +892,12 @@ function draw() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Crop top 20px on mobile by translating everything up
+    if (isMobile) {
+        ctx.save();
+        ctx.translate(0, -20);
+    }
+
     drawBackground();
     drawTrain();
     drawPigeons();
@@ -907,6 +913,10 @@ function draw() {
     // Draw game over screen on top of everything
     if (!game.isRunning && game.gameStarted) {
         drawGameOverScreen();
+    }
+
+    if (isMobile) {
+        ctx.restore();
     }
 }
 
