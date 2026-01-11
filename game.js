@@ -848,7 +848,9 @@ function drawScoreAnimations() {
 
         ctx.globalAlpha = anim.alpha;
         ctx.fillStyle = '#00FF00';  // Bright green
-        ctx.font = 'bold 24px Arial';
+        // Bigger font size for mobile
+        const fontSize = isMobile ? 36 : 24;
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
