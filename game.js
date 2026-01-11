@@ -86,11 +86,6 @@ function assetLoaded() {
         // Position train so it's fully visible at bottom of canvas
         train.y = canvas.height - train.centerHeight;
 
-        console.log('Idle sprite:', CAT_CONFIG.idleSpriteWidth, 'x', CAT_CONFIG.idleSpriteHeight);
-        console.log('Run sprite:', CAT_CONFIG.runSpriteWidth, 'x', CAT_CONFIG.runSpriteHeight);
-        console.log('Train center:', train.centerWidth, 'x', train.centerHeight);
-        console.log('Train end:', train.endWidth, 'x', train.endHeight);
-        console.log('Train Y position:', train.y);
 
         initGame();
     }
@@ -195,8 +190,7 @@ window.addEventListener('keydown', (e) => {
             jumpLevel = 1;
             lastJumpPressTime = currentTime;
             sounds.jump.currentTime = 0;
-            sounds.jump.play();
-            console.log('Low jump (1 press)');
+            sounds.jump.play().catch(() => {});
         }
         // Second press within 300ms - upgrade to normal jump
         else if (jumpLevel === 1 && timeSinceLastPress < 300) {
@@ -204,8 +198,7 @@ window.addEventListener('keydown', (e) => {
             jumpLevel = 2;
             lastJumpPressTime = currentTime;
             sounds.jump.currentTime = 0;
-            sounds.jump.play();
-            console.log('Normal jump (2 presses)');
+            sounds.jump.play().catch(() => {});
         }
         // Third press within 300ms - upgrade to high jump
         else if (jumpLevel === 2 && timeSinceLastPress < 300) {
@@ -213,8 +206,7 @@ window.addEventListener('keydown', (e) => {
             jumpLevel = 3;
             lastJumpPressTime = currentTime;
             sounds.jump.currentTime = 0;
-            sounds.jump.play();
-            console.log('HIGH JUMP! (3 presses)');
+            sounds.jump.play().catch(() => {});
         }
     }
 });
@@ -277,7 +269,7 @@ if (window.innerWidth <= 1024) {
             jumpLevel = 1;
             lastJumpPressTime = currentTime;
             sounds.jump.currentTime = 0;
-            sounds.jump.play();
+            sounds.jump.play().catch(() => {});
         }
         // Second tap - upgrade to normal jump
         else if (jumpLevel === 1 && timeSinceLastPress < 300) {
@@ -285,7 +277,7 @@ if (window.innerWidth <= 1024) {
             jumpLevel = 2;
             lastJumpPressTime = currentTime;
             sounds.jump.currentTime = 0;
-            sounds.jump.play();
+            sounds.jump.play().catch(() => {});
         }
         // Third tap - upgrade to high jump
         else if (jumpLevel === 2 && timeSinceLastPress < 300) {
@@ -293,7 +285,7 @@ if (window.innerWidth <= 1024) {
             jumpLevel = 3;
             lastJumpPressTime = currentTime;
             sounds.jump.currentTime = 0;
-            sounds.jump.play();
+            sounds.jump.play().catch(() => {});
         }
     });
 
@@ -316,8 +308,6 @@ function initGame() {
     game.countdownTimer = 0;
     game.gameStarted = false;
     game.showLeftEnd = true;
-
-    console.log('Game initialized. Train X:', game.trainX);
 
     gameLoop();
 }
@@ -379,8 +369,6 @@ function spawnEagle() {
         warning: true,  // Show warning first
         warningTimer: eagleConfig.warningTime
     });
-
-    console.log('Eagle #' + eagleConfig.spawnCount + ' spawned at height:', attackY);
 }
 
 function updateCat() {
@@ -407,11 +395,9 @@ function updateCat() {
         }
     } else {
         // Cat is over a gap - keep falling!
-        console.log('CAT FALLING! Cat Y:', cat.y, 'Ground Y:', groundY, 'Train Y:', train.y);
 
         // Game over when cat falls below where it should be standing
         if (cat.y >= groundY + 20) {  // 20px buffer to trigger game over
-            console.log('GAME OVER TRIGGERED!');
             gameOver();
             return;
         }
@@ -498,8 +484,7 @@ function checkCatOverTrain() {
 
 function gameOver() {
     game.isRunning = false;
-    sounds.gameOver.play();
-    console.log('Game Over! Final Score:', game.score);
+    sounds.gameOver.play().catch(() => {});
 }
 
 function drawGameOverScreen() {
@@ -553,7 +538,7 @@ function updatePigeons() {
 
             // Play coin sound
             sounds.coin.currentTime = 0;
-            sounds.coin.play();
+            sounds.coin.play().catch(() => {});
 
             // Create floating score animation
             scoreAnimations.push({
@@ -636,7 +621,6 @@ function updateEagles() {
 
         // Check collision with cat (only when not in warning phase)
         if (!eagle.warning && checkEagleCollision(cat, eagle)) {
-            console.log('Eagle caught the cat! Game Over!');
             gameOver();
             return;
         }
@@ -644,7 +628,6 @@ function updateEagles() {
         // Remove if off screen
         if (eagle.x < -eagleConfig.width - 200) {
             eagles.splice(i, 1);
-            console.log('Eagle missed! +5 points');
             game.score += 5;  // Bonus for dodging eagle
             game.eaglesDodged++;
             document.getElementById('score').textContent = game.score;
@@ -881,7 +864,6 @@ function update() {
             game.countdown--;
             if (game.countdown <= 0) {
                 game.gameStarted = true;
-                console.log('Countdown finished! Train starting to move.');
             }
         }
         return; // Don't update game until countdown finishes
