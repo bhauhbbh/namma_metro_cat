@@ -118,6 +118,10 @@
             display: none;
         }
 
+        .mobile-score-overlay {
+            display: none;
+        }
+
         /* Mobile/Handheld Console Layout */
         @media (max-width: 1024px) {
             body {
@@ -139,77 +143,14 @@
                 display: flex;
             }
 
-            /* Info bar above canvas */
+            /* Hide control panel on mobile */
             #controlsPanel {
-                width: 100%;
-                min-width: auto;
-                padding: 6px 10px;
-                background: rgba(0,0,0,0.5);
-                border-radius: 0;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 0;
-                flex-shrink: 0;
-            }
-
-            #controlsPanel h2 {
                 display: none;
             }
 
-            .control-item {
-                display: inline-block;
-                margin: 0 5px;
-                font-size: 10px;
-            }
-
-            .control-key {
-                min-width: auto;
-                font-size: 10px;
-            }
-
-            .mobile-only {
-                display: inline-block;
-            }
-
-            .desktop-only {
-                display: none;
-            }
-
-            /* Score panel - compact top bar */
+            /* Hide score panel on mobile */
             #scorePanel {
-                width: 100%;
-                min-width: auto;
-                padding: 6px 10px;
-                background: rgba(0,0,0,0.6);
-                border-radius: 0;
-                display: flex;
-                justify-content: space-around;
-                align-items: center;
-                margin-bottom: 0;
-                flex-shrink: 0;
-            }
-
-            #scorePanel h2 {
                 display: none;
-            }
-
-            #score {
-                font-size: 28px;
-                margin: 0;
-            }
-
-            .stat-item {
-                margin: 0;
-                text-align: center;
-            }
-
-            .stat-label {
-                font-size: 9px;
-            }
-
-            .stat-value {
-                font-size: 16px;
             }
 
             /* Canvas container - 60% of remaining space */
@@ -224,6 +165,33 @@
                 align-items: center;
                 justify-content: center;
                 overflow: hidden;
+                position: relative;
+            }
+
+            /* Score overlay on canvas for mobile */
+            .mobile-score-overlay {
+                display: flex !important;
+                position: absolute;
+                top: 10px;
+                left: 0;
+                right: 0;
+                padding: 8px 15px;
+                justify-content: center;
+                align-items: center;
+                z-index: 5;
+                pointer-events: none;
+            }
+
+            .mobile-score-overlay .mobile-score {
+                font-size: 40px;
+                margin: 0;
+                color: #fff;
+                font-weight: bold;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            }
+
+            .mobile-score-overlay .stat-item {
+                display: none;
             }
 
             canvas {
@@ -440,6 +408,21 @@
         <!-- Game Canvas -->
         <div id="gameContainer">
             <canvas id="gameCanvas" width="1200" height="675"></canvas>
+
+            <!-- Mobile Score Overlay -->
+            <div class="mobile-score-overlay">
+                <div>
+                    <div class="mobile-score">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Pigeons</div>
+                    <div class="stat-value mobile-pigeons">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Eagles</div>
+                    <div class="stat-value mobile-eagles">0</div>
+                </div>
+            </div>
         </div>
 
         <!-- Mobile Touch Controls (Handheld style) -->

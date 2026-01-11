@@ -571,6 +571,11 @@ function updatePigeons() {
             game.pigeonsCaught++;
             document.getElementById('score').textContent = game.score;
             document.getElementById('pigeonsCaught').textContent = game.pigeonsCaught;
+            // Update mobile overlay
+            const mobileScore = document.querySelector('.mobile-score');
+            const mobilePigeons = document.querySelector('.mobile-pigeons');
+            if (mobileScore) mobileScore.textContent = game.score;
+            if (mobilePigeons) mobilePigeons.textContent = game.pigeonsCaught;
             continue;
         }
 
@@ -644,6 +649,11 @@ function updateEagles() {
             game.eaglesDodged++;
             document.getElementById('score').textContent = game.score;
             document.getElementById('eaglesDodged').textContent = game.eaglesDodged;
+            // Update mobile overlay
+            const mobileScore = document.querySelector('.mobile-score');
+            const mobileEagles = document.querySelector('.mobile-eagles');
+            if (mobileScore) mobileScore.textContent = game.score;
+            if (mobileEagles) mobileEagles.textContent = game.eaglesDodged;
         }
     }
 }
@@ -847,9 +857,10 @@ function drawScoreAnimations() {
         ctx.save();
 
         ctx.globalAlpha = anim.alpha;
-        ctx.fillStyle = '#00FF00';  // Bright green
+        // Lighter green for mobile, bright green for desktop
+        ctx.fillStyle = isMobile ? '#7FFF7F' : '#00FF00';
         // Bigger font size for mobile
-        const fontSize = isMobile ? 36 : 24;
+        const fontSize = isMobile ? 44 : 24;
         ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
